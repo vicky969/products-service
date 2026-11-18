@@ -51,3 +51,9 @@ Historical observations from a prior/reference build. These are not established 
 | AC-1.1 | |
 | AC-1.2 | |
 | ... | |
+## 2026-11-18  Task 0 scaffold and verified toolchain
+
+- Decision: pinned NestJS 11.2.11, Nest CLI 11.0.24, TypeScript 5.9.3, Sequelize 6.37.7, Jest 29.7.0, and the remaining direct dependencies at the exact versions in `package.json` and `package-lock.json`.
+- Database safety: `scripts/run-e2e-tests.cjs` rejects any `E2E_DB_NAME` other than exactly `ecommerce_test` before spawning Jest. The negative unit test verified rejection for `ecommerce`.
+- Verification: `npm run build` passed; `npm test` passed (2 suites, 2 tests); `npm run test:e2e` passed (1 suite, 1 test) with `E2E_DB_NAME=ecommerce_test`. The Task 0 integration harness is only a scaffold smoke test; MySQL was not connected or exercised because database wiring is Task 1.
+- Audit: `npm audit` reported 48 vulnerabilities (3 moderate, 45 high). No audit fixes or version changes were applied.
