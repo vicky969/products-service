@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SequelizeModule, SequelizeModuleOptions } from '@nestjs/sequelize';
 import { Product } from './products/product.model';
+import { ProductsModule } from './products/products.module';
 
 function parseDatabasePort(value: string | undefined): number {
   const port = Number(value ?? '3306');
@@ -14,6 +15,7 @@ function parseDatabasePort(value: string | undefined): number {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ProductsModule,
     SequelizeModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
