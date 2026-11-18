@@ -1,7 +1,7 @@
-const expectedDatabaseName = 'ecommerce_test';
+const { expectedDatabaseName, isSafeIntegrationDatabase } = require('./database-safety.cjs');
 const testDatabaseName = process.env.E2E_DB_NAME;
 
-if (testDatabaseName !== expectedDatabaseName) {
+if (!isSafeIntegrationDatabase(testDatabaseName)) {
   console.error(
     `Integration tests refused: E2E_DB_NAME must be exactly ${expectedDatabaseName}; received ${testDatabaseName ?? '<unset>'}.`,
   );

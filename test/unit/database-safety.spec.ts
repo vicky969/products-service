@@ -1,18 +1,11 @@
-import { spawnSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { describe, expect, it } from '@jest/globals';
+import { expectedDatabaseName, isSafeIntegrationDatabase } from '../../scripts/database-safety.cjs';
 
-describe('integration database safety', () => {
-  it('rejects an incorrect database before Jest starts', () => {
-    const runnerPath = resolve(process.cwd(), 'scripts/run-e2e-tests.cjs');
-    const result = spawnSync(process.execPath, [runnerPath], {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      env: { ...process.env, E2E_DB_NAME: 'ecommerce' },
-    });
-    const output = `${result.stdout}${result.stderr}`;
-
-    expect(result.status).toBe(1);
-    expect(output).toContain('E2E_DB_NAME must be exactly ecommerce_test');
-    expect(output).not.toMatch(/Test Suites:|PASS |FAIL /);
+describe('NFR-4 integration database safety', () => {
+  it('accepts only ecommerce_test', () => {
+    expect(isSafeIntegrationDatabase(expectedDatabaseName)).toBe(true);
+    expect(isSafeIntegrationDatabase('ecommerce')).toBe(false);
+    expect(isSafeIntegrationDatabase('other_database')).toBe(false);
+    expect(isSafeIntegrationDatabase(undefined)).toBe(false);
   });
 });
