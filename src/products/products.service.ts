@@ -2,7 +2,18 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectModel } from '@nestjs/sequelize';
 import { UniqueConstraintError } from 'sequelize';
 import { CreateProductDto } from './dto/create-product.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { Product } from './product.model';
+
+export interface ProductPage {
+  data: Product[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 @Injectable()
 export class ProductsService {
@@ -30,5 +41,24 @@ export class ProductsService {
     }
 
     return product;
+  }
+
+  async findAll(pagination: PaginationQueryDto): Promise<ProductPage> {
+    const { page, limit } = pagination;
+    const { count, rows } = await this.productModel.findAndCountAll({
+      limit,
+      offset: (page - 1) * limit,
+      order: [['id', 'ASC']],
+    });
+
+    return {
+      data: rows,
+      meta: {
+        total: count,
+        page,
+        limit,
+        totalPages: count === 0 ? 0 : Math.ceil(count / limit),
+      },
+    };
   }
 }

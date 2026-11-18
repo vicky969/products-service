@@ -22,9 +22,40 @@ interface ValidationErrorResponse {
   error: string;
 }
 
-describe('Products API - product creation and retrieval', () => {
+interface ProductListResponse {
+  data: ProductResponse[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+describe('Products API - product operations', () => {
   let app: INestApplication | undefined;
   const createdTokens: string[] = [];
+
+  function expectProductRows(actual: ProductResponse[], expected: Product[]): void {
+    expect(actual).toHaveLength(expected.length);
+
+    actual.forEach((product, index) => {
+      const expectedProduct = expected[index];
+
+      expect(product).toEqual({
+        id: expectedProduct.id,
+        productToken: expectedProduct.productToken,
+        name: expectedProduct.name,
+        price: expectedProduct.price,
+        stock: expectedProduct.stock,
+      });
+      expect(typeof product.id).toBe('number');
+      expect(typeof product.productToken).toBe('string');
+      expect(typeof product.name).toBe('string');
+      expect(typeof product.price).toBe('string');
+      expect(typeof product.stock).toBe('number');
+    });
+  }
 
   beforeAll(async () => {
     app = await NestFactory.create(AppModule, { logger: false });
@@ -184,5 +215,90 @@ describe('Products API - product creation and retrieval', () => {
 
   it('rejects a non-integer product id', async () => {
     await request(app?.getHttpServer()).get('/products/abc').expect(400);
+  });
+
+  it('uses the default page and limit when listing products', async () => {
+    const total = await Product.count();
+    const expectedProducts = await Product.findAll({
+      limit: 10,
+      order: [['id', 'ASC']],
+    });
+    const response = await request(app?.getHttpServer()).get('/products').expect(200);
+    const result = response.body as ProductListResponse;
+
+    expect(result.meta).toEqual({
+      total,
+      page: 1,
+      limit: 10,
+      totalPages: Math.ceil(total / 10),
+    });
+    expect(result.data).toHaveLength(Math.min(total, 10));
+    expectProductRows(result.data, expectedProducts);
+    expect(result.data.map((product) => product.id)).toEqual(
+      [...result.data.map((product) => product.id)].sort((left, right) => left - right),
+    );
+  });
+
+  it('returns the third page in ascending id order', async () => {
+    const tokenPrefix = `task5-page-three-${Date.now()}`;
+    const products = Array.from({ length: 25 }, (_, index) => ({
+      productToken: `${tokenPrefix}-${index}`,
+      name: `Page product ${index}`,
+      price: '1.00',
+      stock: index,
+    }));
+    createdTokens.push(...products.map((product) => product.productToken));
+    await Product.bulkCreate(products);
+
+    const allProducts = await Product.findAll({ order: [['id', 'ASC']] });
+    const allIds = allProducts.map((product) => product.id);
+    const response = await request(app?.getHttpServer())
+      .get('/products')
+      .query({ page: 3, limit: 10 })
+      .expect(200);
+    const result = response.body as ProductListResponse;
+
+    expect(result.data.map((product) => product.id)).toEqual(allIds.slice(20, 30));
+    expectProductRows(result.data, allProducts.slice(20, 30));
+    expect(result.meta).toEqual({
+      total: allIds.length,
+      page: 3,
+      limit: 10,
+      totalPages: Math.ceil(allIds.length / 10),
+    });
+  });
+
+  it('returns an empty page beyond the last page with the correct total', async () => {
+    const total = await Product.count();
+    const limit = 10;
+    const page = Math.ceil(total / limit) + 1;
+    const response = await request(app?.getHttpServer())
+      .get('/products')
+      .query({ page, limit })
+      .expect(200);
+    const result = response.body as ProductListResponse;
+
+    expect(result.data).toEqual([]);
+    expect(result.meta).toEqual({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    });
+  });
+
+  it.each([
+    { parameter: 'page', value: '0' },
+    { parameter: 'page', value: '1.5' },
+    { parameter: 'page', value: 'abc' },
+    { parameter: 'limit', value: '0' },
+    { parameter: 'limit', value: '101' },
+    { parameter: 'limit', value: '1.5' },
+    { parameter: 'limit', value: 'abc' },
+  ])('rejects invalid $parameter value "$value" when listing products', async ({ parameter, value }) => {
+    await request(app?.getHttpServer())
+      .get('/products')
+      .query({ [parameter]: value })
+      .expect(400);
   });
 });

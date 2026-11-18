@@ -84,3 +84,59 @@ describe('The product lookup service finds a product by ID.', () => {
     });
   });
 });
+
+describe('Product listing service', () => {
+  interface FindAndCountOptions {
+    limit: number;
+    offset: number;
+    order: Array<[string, 'ASC']>;
+  }
+
+  interface FindAndCountResult {
+    count: number;
+    rows: Product[];
+  }
+
+  function createListingService(): {
+    service: ProductsService;
+    findAndCountAll: jest.Mock<(options: FindAndCountOptions) => Promise<FindAndCountResult>>;
+  } {
+    const findAndCountAll = jest.fn<
+      (options: FindAndCountOptions) => Promise<FindAndCountResult>
+    >();
+    const productModel = { findAndCountAll } as unknown as typeof Product;
+
+    return { service: new ProductsService(productModel), findAndCountAll };
+  }
+
+  it('uses page and limit to query the correct offset and calculate metadata', async () => {
+    const { service, findAndCountAll } = createListingService();
+    const products = [{ id: 11 }, { id: 12 }] as unknown as Product[];
+    findAndCountAll.mockResolvedValue({ count: 12, rows: products });
+
+    await expect(service.findAll({ page: 3, limit: 5 })).resolves.toEqual({
+      data: products,
+      meta: { total: 12, page: 3, limit: 5, totalPages: 3 },
+    });
+    expect(findAndCountAll).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 10,
+      order: [['id', 'ASC']],
+    });
+  });
+
+  it('returns empty data and zero total pages when no products exist', async () => {
+    const { service, findAndCountAll } = createListingService();
+    findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+
+    await expect(service.findAll({ page: 1, limit: 10 })).resolves.toEqual({
+      data: [],
+      meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+    });
+    expect(findAndCountAll).toHaveBeenCalledWith({
+      limit: 10,
+      offset: 0,
+      order: [['id', 'ASC']],
+    });
+  });
+});

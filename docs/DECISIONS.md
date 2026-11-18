@@ -98,3 +98,9 @@ Historical observations from a prior/reference build. These are not established 
 - Decision: `GET /products/:id` passes the route value through Nest's `ParseIntPipe`; the service looks up the parsed id and throws `NotFoundException` with the FR-3 message when no row exists.
 - Test coverage: service unit tests cover found and not-found results. MySQL HTTP integration tests cover 200 for an existing product, the specified 404 message for an unknown id, and 400 for `/products/abc`, covering the deferred FR-6 `:id` integer rule.
 - Verification: `npm run build` passed; `npm.cmd test` passed (4 suites, 45 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against real MySQL (2 suites, 15 tests); `git diff --check` passed. One parallel unit-test invocation could not resolve the installed `uid` package, and the PowerShell `npm test` wrapper once exited with `Could not determine Node.js install directory`; `npm ls uid` confirmed `uid@2.0.2` is present, and the standalone `npm.cmd test` run passed.
+
+## 2026-11-19  Task 5 product listing with pagination
+
+- Decision: `ProductsService.findAll` uses `findAndCountAll` with offset `(page - 1) * limit` and ascending `id` order. It returns the current page plus total, page, limit, and ceiling-based total page count; an empty result has zero total pages.
+- Test coverage: service unit tests verify query options, page metadata, and the empty result. MySQL HTTP tests cover default pagination, page 3 ordering, a page beyond the last page, and invalid page/limit values (FR-2 AC-2.1 through AC-2.6).
+- Verification: `npm.cmd run build` passed; `npm.cmd test` passed (3 suites, 46 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against real MySQL (2 suites, 25 tests).

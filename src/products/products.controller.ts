@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { Product } from './product.model';
-import { ProductsService } from './products.service';
+import { ProductPage, ProductsService } from './products.service';
 
 @Controller('products')
 export class ProductsController {
@@ -15,5 +16,10 @@ export class ProductsController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Product> {
     return this.productsService.findOne(id);
+  }
+
+  @Get()
+  findAll(@Query() pagination: PaginationQueryDto): Promise<ProductPage> {
+    return this.productsService.findAll(pagination);
   }
 }
