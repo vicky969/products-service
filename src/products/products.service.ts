@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { UniqueConstraintError } from 'sequelize';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -20,5 +20,15 @@ export class ProductsService {
 
       throw error;
     }
+  }
+
+  async findOne(id: number): Promise<Product> {
+    const product = await this.productModel.findByPk(id);
+
+    if (!product) {
+      throw new NotFoundException(`Product with id ${id} not found`);
+    }
+
+    return product;
   }
 }

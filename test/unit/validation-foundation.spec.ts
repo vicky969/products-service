@@ -7,7 +7,7 @@ import { PaginationQueryDto } from '../../src/products/dto/pagination-query.dto'
 import { UpdateStockDto } from '../../src/products/dto/update-stock.dto';
 import { configureApp } from '../../src/app.setup';
 
-describe('Task 2 FR-6, D-3, D-9 validation foundation', () => {
+describe('Request validation', () => {
   async function validationErrors<T extends object>(
     dto: new () => T,
     value: Record<string, unknown>,

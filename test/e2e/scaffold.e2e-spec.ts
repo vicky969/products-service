@@ -7,7 +7,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { AppModule } from '../../src/app.module';
 import { Product } from '../../src/products/product.model';
 
-describe('Task 1 spec section 3, D-4, D-5, D-8, D-11, NFR-3 MySQL model and connection', () => {
+describe('MySQL product model and connection', () => {
   let app: INestApplicationContext | undefined;
   let sequelize: Sequelize;
 

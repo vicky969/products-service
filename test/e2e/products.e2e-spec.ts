@@ -22,7 +22,7 @@ interface ValidationErrorResponse {
   error: string;
 }
 
-describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
+describe('Products API - product creation and retrieval', () => {
   let app: INestApplication | undefined;
   const createdTokens: string[] = [];
 
@@ -44,7 +44,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     await app?.close();
   });
 
-  it('creates a product with a decimal string price (AC-1.1)', async () => {
+  it('creates a product with its price returned as a decimal string', async () => {
     const productToken = `task3-create-${Date.now()}`;
     createdTokens.push(productToken);
 
@@ -59,7 +59,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     expect(product.id).toEqual(expect.any(Number));
   });
 
-  it('returns 409 and the specified message for an exact duplicate token (AC-1.2)', async () => {
+  it('returns a conflict for an exact duplicate product token', async () => {
     const productToken = `task3-duplicate-${Date.now()}`;
     createdTokens.push(productToken);
     const body = { productToken, name: 'Example', price: '1.00', stock: 1 };
@@ -77,7 +77,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     });
   });
 
-  it('allows exactly one concurrent create for a token (NFR-2)', async () => {
+  it('allows only one of two concurrent creates for a product token', async () => {
     const productToken = `task3-concurrent-${Date.now()}`;
     createdTokens.push(productToken);
     const body = { productToken, name: 'Example', price: '1.00', stock: 1 };
@@ -91,7 +91,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     expect(statuses).toEqual([201, 409]);
   });
 
-  it('allows tokens that differ only by case (AC-1.3)', async () => {
+  it('treats product tokens as case-sensitive', async () => {
     const lowerToken = `sku-1-${Date.now()}`;
     const upperToken = lowerToken.toUpperCase();
     createdTokens.push(lowerToken, upperToken);
@@ -109,7 +109,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     expect((upperResponse.body as ProductResponse).productToken).toBe(upperToken);
   });
 
-  it('returns all validation errors for an invalid body (AC-1.4)', async () => {
+  it('reports all validation errors for an invalid request body', async () => {
     const response = await request(app?.getHttpServer())
       .post('/products')
       .send({ productToken: 'bad token', name: ' ', price: 19.99, stock: -1 })
@@ -127,7 +127,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     );
   });
 
-  it('rejects unknown properties (AC-1.5)', async () => {
+  it('rejects unknown request properties', async () => {
     const response = await request(app?.getHttpServer())
       .post('/products')
       .send({ productToken: 'task3-unknown', name: 'Example', price: '1.00', stock: 1, id: 5 })
@@ -137,7 +137,7 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     expect(error.message).toContain('property id should not exist');
   });
 
-  it('requires stock and rejects its omission (AC-1.6)', async () => {
+  it('rejects a create request with missing stock', async () => {
     const response = await request(app?.getHttpServer())
       .post('/products')
       .send({ productToken: 'task3-missing-stock', name: 'Example', price: '1.00' })
@@ -145,5 +145,44 @@ describe('Task 3 FR-1 AC-1.1 to AC-1.6 product creation', () => {
     const error = response.body as ValidationErrorResponse;
 
     expect(error.message).toContain('stock must be an integer number');
+  });
+
+  it('retrieves a product by its id', async () => {
+    const productToken = `task4-get-${Date.now()}`;
+    createdTokens.push(productToken);
+    const createdResponse = await request(app?.getHttpServer())
+      .post('/products')
+      .send({ productToken, name: 'Get example', price: '12.50', stock: 4 })
+      .expect(201);
+    const createdProduct = createdResponse.body as ProductResponse;
+
+    const response = await request(app?.getHttpServer())
+      .get(`/products/${createdProduct.id}`)
+      .expect(200);
+
+    expect(response.body as ProductResponse).toMatchObject({
+      id: createdProduct.id,
+      productToken,
+      name: 'Get example',
+      price: '12.50',
+      stock: 4,
+    });
+  });
+
+  it('returns the not found message for an unknown product id', async () => {
+    const id = 2147483000;
+    const response = await request(app?.getHttpServer())
+      .get(`/products/${id}`)
+      .expect(404);
+
+    expect(response.body).toMatchObject({
+      statusCode: 404,
+      message: `Product with id ${id} not found`,
+      error: 'Not Found',
+    });
+  });
+
+  it('rejects a non-integer product id', async () => {
+    await request(app?.getHttpServer()).get('/products/abc').expect(400);
   });
 });

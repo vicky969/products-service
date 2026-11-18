@@ -84,7 +84,7 @@ Historical observations from a prior/reference build. These are not established 
 ## 2026-11-19  Task 2 validation foundation
 
 - Decision: `configureApp()` registers Nest's global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted` and `transform`; `main.ts` uses this shared setup. DTOs trim only the product token and name, preserve price as a decimal string, and transform pagination query values to numbers.
-- Test coverage: unit tests cover the FR-6 rules for create/update DTO values and pagination defaults and boundaries, plus the shared pipe's rejection of unknown properties and query-string transformation. The FR-6 `:id` integer validation coverage is deliberately deferred to Task 4, which assigns `ParseIntPipe` and the invalid `abc` route test; this coverage remains outstanding until Task 4. No API routes, controllers or service logic were added in Task 2.
+- Test coverage: unit tests cover the FR-6 rules for create/update DTO values and pagination defaults and boundaries, plus the shared pipe's rejection of unknown properties and query-string transformation. The FR-6 `:id` integer validation coverage was deliberately deferred to Task 4, which assigns `ParseIntPipe` and the invalid `abc` route test; Task 4 now covers it. No API routes, controllers or service logic were added in Task 2.
 - Verification: `npm run build` passed; `npm test` passed (3 suites, 40 tests); direct `npm run test:e2e` without `E2E_DB_NAME` was refused by the fail-closed guard; `npm run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed (1 suite, 5 MySQL tests). The latter rechecked Task 1's live database assumptions after the application bootstrap change.
 
 ## 2026-11-19  Task 3 create product
@@ -92,3 +92,9 @@ Historical observations from a prior/reference build. These are not established 
 - Decision: create attempts go directly to the database unique index; `UniqueConstraintError` maps to HTTP 409 with the FR-1 message, while unexpected persistence errors are rethrown for Nest's server-side error handling.
 - Test coverage: service unit tests cover success, conflict mapping, and rethrowing other errors. MySQL HTTP integration tests cover AC-1.1 through AC-1.6 and NFR-2, including decimal-string responses, exact duplicate rejection, case-distinct tokens, simultaneous duplicate creates, aggregated validation failures, unknown properties, and missing stock.
 - Verification: `npm run build` passed; `npm test` passed (4 suites, 43 tests); `npm run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed (2 suites, 12 tests) against real MySQL; `git diff --check` passed.
+
+## 2026-11-19  Task 4 get product
+
+- Decision: `GET /products/:id` passes the route value through Nest's `ParseIntPipe`; the service looks up the parsed id and throws `NotFoundException` with the FR-3 message when no row exists.
+- Test coverage: service unit tests cover found and not-found results. MySQL HTTP integration tests cover 200 for an existing product, the specified 404 message for an unknown id, and 400 for `/products/abc`, covering the deferred FR-6 `:id` integer rule.
+- Verification: `npm run build` passed; `npm.cmd test` passed (4 suites, 45 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against real MySQL (2 suites, 15 tests); `git diff --check` passed. One parallel unit-test invocation could not resolve the installed `uid` package, and the PowerShell `npm test` wrapper once exited with `Could not determine Node.js install directory`; `npm ls uid` confirmed `uid@2.0.2` is present, and the standalone `npm.cmd test` run passed.

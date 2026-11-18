@@ -4,7 +4,7 @@ import { Product } from '../../src/products/product.model';
 import { CreateProductDto } from '../../src/products/dto/create-product.dto';
 import { ProductsService } from '../../src/products/products.service';
 
-describe('Task 3 FR-1, D-2, D-4, NFR-2 ProductsService.create', () => {
+describe('Product creation service', () => {
   const dto: CreateProductDto = {
     productToken: 'sku-1',
     name: 'Example',
@@ -24,7 +24,7 @@ describe('Task 3 FR-1, D-2, D-4, NFR-2 ProductsService.create', () => {
     return { service: new ProductsService(productModel), createProduct };
   }
 
-  it('persists and returns a valid product', async () => {
+  it('persists a valid product and returns it', async () => {
     const { service, createProduct } = createService();
     const savedProduct = { id: 1, ...dto } as unknown as Product;
     createProduct.mockResolvedValue(savedProduct);
@@ -33,7 +33,7 @@ describe('Task 3 FR-1, D-2, D-4, NFR-2 ProductsService.create', () => {
     expect(createProduct).toHaveBeenCalledWith(dto);
   });
 
-  it('maps an exact-token unique constraint error to the specified conflict', async () => {
+  it('maps a duplicate product token error to a conflict', async () => {
     const { service, createProduct } = createService();
     createProduct.mockRejectedValue(
       new UniqueConstraintError({ message: 'duplicate token', errors: [] }),
@@ -45,11 +45,42 @@ describe('Task 3 FR-1, D-2, D-4, NFR-2 ProductsService.create', () => {
     });
   });
 
-  it('rethrows unexpected persistence errors unchanged', async () => {
+  it('rethrows unexpected persistence errors', async () => {
     const { service, createProduct } = createService();
     const unexpectedError = new Error('database unavailable');
     createProduct.mockRejectedValue(unexpectedError);
 
     await expect(service.create(dto)).rejects.toBe(unexpectedError);
+  });
+});
+
+describe('The product lookup service finds a product by ID.', () => {
+  function createReadService(): {
+    service: ProductsService;
+    findByPk: jest.Mock<(id: number) => Promise<Product | null>>;
+  } {
+    const findByPk = jest.fn<(id: number) => Promise<Product | null>>();
+    const productModel = { findByPk } as unknown as typeof Product;
+
+    return { service: new ProductsService(productModel), findByPk };
+  }
+
+  it('returns a product when the id exists', async () => {
+    const { service, findByPk } = createReadService();
+    const product = { id: 42 } as unknown as Product;
+    findByPk.mockResolvedValue(product);
+
+    await expect(service.findOne(42)).resolves.toBe(product);
+    expect(findByPk).toHaveBeenCalledWith(42);
+  });
+
+  it('throws a not found error when the id is unknown', async () => {
+    const { service, findByPk } = createReadService();
+    findByPk.mockResolvedValue(null);
+
+    await expect(service.findOne(42)).rejects.toMatchObject({
+      status: 404,
+      message: 'Product with id 42 not found',
+    });
   });
 });
