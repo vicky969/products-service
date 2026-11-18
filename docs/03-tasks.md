@@ -1,4 +1,4 @@
-# Tasks
+﻿# Tasks
 
 Work in order, one task per AI turn, following the protocol in `AGENTS.md`: **short plan, tests first, minimal implementation, run everything, explain back, update docs.**
 
@@ -10,8 +10,9 @@ Refs: FR/NFR/AC from `01-spec.md`; D-n from `02-plan.md`.
 
 ## Task 0: Scaffold and toolchain
 **Refs:** constitution, D-12, NFR-3
-**Do:** npm project; pinned compatible Nest packages, `sequelize`, `sequelize-typescript`, `mysql2`, `class-validator`, `class-transformer`, `@nestjs/config`; dev: Jest, ts-jest, supertest, TypeScript; `tsconfig` (strict, decorators), `nest-cli.json`, Jest with separate unit and e2e projects, `.gitignore`, `.env.example`.
-**Done when:** `npm run build` passes and a trivial test runs in each Jest project.
+**Do:** npm project; pinned compatible Nest packages, `sequelize`, `sequelize-typescript`, `mysql2`, `class-validator`, `class-transformer`, `@nestjs/config`; dev: Jest, ts-jest, supertest, TypeScript; `tsconfig` (strict, decorators), `nest-cli.json`, Jest with separate unit and MySQL HTTP integration projects, `.gitignore`, `.env.example`, and fail-closed integration-test database configuration restricted to `ecommerce_test`.
+**Test safety:** test setup must reject every database name except exactly `ecommerce_test` before connecting or running schema setup. It must reject `ecommerce` and any other configured name.
+**Done when:** `npm run build` passes, a trivial unit test runs without MySQL, the integration harness starts against MySQL when available, and its safety check rejects any database name other than `ecommerce_test` before a database operation.
 **Explain back:**
 1. Why pin versions rather than take the latest? What broke before?
 2. Why separate Jest projects for unit and integration?
@@ -20,7 +21,7 @@ Refs: FR/NFR/AC from `01-spec.md`; D-n from `02-plan.md`.
 ## Task 1: Database, Docker and model
 **Refs:** spec section 3, D-4, D-5, D-8, D-11, NFR-3
 **Do:** SQL schema defined once and applied to `ecommerce` and `ecommerce_test` (`productToken` with `utf8mb4_bin`); `docker-compose.yml` with MySQL only; `Product` model (`timestamps: false`, attribute and creation-attribute types; `price` typed as a string); `AppModule` with `SequelizeModule.forRootAsync` reading env vars; `synchronize` off.
-**Tests first:** integration check that the app connects to `ecommerce_test`, the table exists, and `sku-1` and `SKU-1` can both be inserted while an exact duplicate fails.
+**Tests first:** integration check that the app connects to `ecommerce_test`, the table exists, and `sku-1` and `SKU-1` can both be inserted while an exact duplicate fails. Every integration setup path must reject a database name other than `ecommerce_test` before connecting or applying schema.
 **Done when:** Docker MySQL starts, the connection test passes. **Confirm Docker works on your machine today.** This is the main schedule risk.
 **Explain back:**
 1. Why a binary collation on `productToken`? What happens without it?
@@ -36,7 +37,7 @@ Refs: FR/NFR/AC from `01-spec.md`; D-n from `02-plan.md`.
 **Explain back:**
 1. What do `whitelist`, `forbidNonWhitelisted` and `transform` each do?
 2. Why must `transform` be on for query params?
-3. Why does `price: "10"` (a string) fail on input, and is that a good contract?
+3. Why does the API accept and return price as a decimal string instead of a JSON number?
 
 ## Task 3: Create product
 **Refs:** FR-1 (AC-1.1 to 1.6), D-2, D-4, NFR-2
@@ -97,7 +98,7 @@ Refs: FR/NFR/AC from `01-spec.md`; D-n from `02-plan.md`.
 1. Which README claims did you verify by running them?
 2. What are the honest limits, stated before the interviewer finds them?
 
-Optional stretch, only if everything above is done and explained: Swagger (D-13).
+Swagger/OpenAPI is outside v1 scope (D-13).
 
 ## Task 10: Interview rehearsal
 **Do:** without the AI, walk through the repo aloud: spec, decisions, one request end to end (pipe, controller, service, model, MySQL), and the tests. Then do at least three drills from `04-change-drills.md`.

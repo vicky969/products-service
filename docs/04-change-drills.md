@@ -1,4 +1,6 @@
-# Change drills
+﻿# Optional change drills (outside v1 implementation scope)
+
+These are interview-practice exercises only. Do not implement them as part of v1 unless the specification is explicitly changed and approved.
 
 In the final interview they may say "can you change X to do Y?". Practise until the loop is automatic.
 
@@ -40,14 +42,14 @@ Tip: any column change touches the model, the SQL schema, the DTO, the tests and
 ## Drill 2: Atomic stock decrement for orders (target: 20 min)
 **Request:** "Two orders arrive at once. Stock must never go negative or be overwritten."
 - **Spec:** new endpoint or mode, for example `POST /products/:id/stock/adjust` with `{ delta: int }` (non-zero). AC: stock never < 0; insufficient stock returns **409** (or 422; decide and log).
-- **Plan:** D-5 revisited: replace read-then-write with a single atomic statement.
+- **Plan:** D-6 revisited: replace read-then-write with a single atomic statement.
 - **Code (Sequelize):** an `UPDATE ... SET stock = stock + :delta WHERE id = :id AND stock + :delta >= 0` (for example `Product.increment` can't guard the floor by itself, so use a conditional `update` with `Sequelize.literal`, or a transaction with `SELECT ... FOR UPDATE`). If 0 rows affected: distinguish 404 from insufficient stock with a follow-up existence check.
 - **Test:** concurrent requests (`Promise.all`) that would oversell must produce exactly the allowed successes. Run it against the Docker MySQL test database; that is where real concurrency behaves like production.
 - **Gotcha:** `stock` is `UNSIGNED` in MySQL: subtracting below zero can raise an error rather than going negative. The `WHERE` guard avoids ever getting there.
 
 ## Drill 3: Look up by productToken (target: 10 min)
 **Request:** "Other services only know the token, not our numeric id."
-- **Spec:** `GET /products/by-token/:productToken` (or a query filter on the list). Resolves open question Q-1.
+- **Spec:** `GET /products/by-token/:productToken` (or a query filter on the list). This would add a lookup route beyond the v1 numeric-ID route.
 - **Code:** service `findByToken` using `findOne({ where: { productToken } })`; reuse the 404 pattern; validate the param with the same token rule.
 - **Gotcha:** route order. A static path like `by-token/:t` must not be shadowed by `:id`. Declare it before `:id` or use a distinct prefix.
 
@@ -94,8 +96,8 @@ Practise answering each in under 30 seconds, from your own notes:
 - Why REST and not a message queue?
 - Why DB unique index instead of a pre-check?
 - Why reject unknown fields?
-- Why DECIMAL and not float, and why return a number?
+- Why does the API accept and return price as a decimal string instead of a JSON number?
 - Why `PATCH /:id/stock`?
-- Why real MySQL in the integration tests, and what would SQLite have hidden?
+- Why use real MySQL for the integration tests, and which MySQL-specific behavior does it verify?
 - What did the AI get wrong, and how did you catch it?
 - What would you do next with another day?

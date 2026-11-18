@@ -1,4 +1,4 @@
-# AI guardrails for products-service
+﻿# AI guardrails for products-service
 
 Read at the start of every session (Codex reads `AGENTS.md`; `CLAUDE.md` points here). The human (Vikram) owns every decision and must be able to explain every line to an interviewer.
 
@@ -32,7 +32,7 @@ Never implement more than one task per turn.
 - **No disabling checks to go green:** no `skip`, `any`, `@ts-ignore`, `eslint-disable` or loosened assertions. If a test is wrong, say why and propose the fix.
 - **No destructive commands** (`rm -rf`, dropping tables, force push, `npm audit fix --force`) without approval.
 - **Never claim something works unless it was run.** Say "not run" when it wasn't. State clearly when MySQL or Docker was not available.
-- **Real MySQL only for integration tests.** Do not swap in SQLite to make tests easier.
+- **Real MySQL only for integration tests.** HTTP integration tests may connect only to `ecommerce_test`. Test configuration must fail before connecting or running schema setup if any other database name is selected. Do not swap in SQLite to make tests easier.
 
 ## 4. Code standards
 

@@ -1,4 +1,4 @@
-# products-service: build it with spec-driven development
+﻿# products-service: build it with spec-driven development
 
 You are going to build the Scalapay `products-service` assessment **yourself, with AI as a pair**, driven by written specs and guardrails. By the end you will have the working service, a paper trail of decisions, and the ability to explain and change any part of it.
 
@@ -40,7 +40,7 @@ Why this helps you specifically:
 3. **Loop through the tasks, one at a time.** For each: the AI states a short plan, writes tests first, implements, shows real test output, and lists the explain-back questions. The questions don't block progress, but **answer them in your own words, out loud if you can**, before the interview. If you can't, ask the AI to explain until you can.
 4. **Keep `docs/DECISIONS.md` current.** Every time something is decided, changed or goes wrong, one entry. This becomes your interview script.
 5. **When Tasks 0-10 are done, run the change drills** in `docs/04-change-drills.md`, ideally with a timer.
-6. **Compare with the earlier reference build** (the separate `products-service` project) only *after* you have attempted a task. It differs on purpose in places (SQLite tests, price as a number, Swagger), because the decisions changed on 2026-11-18. Differences are discussion points.
+
 
 ## Getting more out of the AI
 

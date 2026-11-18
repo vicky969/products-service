@@ -1,4 +1,4 @@
-# Specification: products-service
+﻿# Specification: products-service
 
 Status: **v2** (19 decisions approved 2026-11-18; see `DECISIONS.md`)
 Source: Scalapay "Backend/Full Stack Software Engineer" assessment brief
@@ -25,7 +25,7 @@ Database `ecommerce`, table `products`. The SQL script is the only schema source
 | `productToken` | VARCHAR(64), **binary collation** (`utf8mb4_bin`) | NOT NULL, UNIQUE. Binary collation makes uniqueness case-sensitive: `sku-1` and `SKU-1` are different tokens |
 | `name` | VARCHAR(255) | NOT NULL |
 | `price` | DECIMAL(10,2) | NOT NULL, >= 0 |
-| `stock` | INT | NOT NULL, **no default**, must be >= 0 (enforced by validation) |
+| `stock` | INT UNSIGNED | NOT NULL, **no default**, database range 0-4,294,967,295; API validation intentionally caps it at 2,147,483,647 (FR-6) |
 
 No `createdAt`/`updatedAt` columns in v1. The model sets `timestamps: false`.
 
@@ -35,7 +35,7 @@ Every acceptance criterion (AC) must be covered by an automated test.
 
 ### FR-1 Create a product
 
-`POST /products` with `{ productToken, name, price, stock }`. All four fields are required.
+`POST /products` with JSON body `{ "productToken": "SKU-1", "name": "Example", "price": "19.99", "stock": 10 }`. All four fields are required; price is a decimal string.
 
 - **AC-1.1** Valid body: **201** with `{ id, productToken, name, price, stock }`. `price` is a **string** with two decimals, for example `"29.95"`.
 - **AC-1.2** Existing `productToken` (exact, case-sensitive match): **409**, message `A product with productToken "<token>" already exists`; nothing created.
@@ -87,20 +87,20 @@ Every acceptance criterion (AC) must be covered by an automated test.
 | --- | --- |
 | `productToken` | string, trimmed, not empty, max 64, only letters, digits, `-`, `_` |
 | `name` | string, trimmed, not empty, max 255 |
-| `price` | JSON number, finite, >= 0, at most 2 decimal places, <= 99,999,999.99 |
-| `stock` | integer, >= 0, <= 2,147,483,647 |
+| `price` | decimal string matching `^(0|[1-9][0-9]{0,7})(\.[0-9]{1,2})?$`; range 0 to 99,999,999.99; reject JSON numbers and exponent notation |
+| `stock` | integer, >= 0, <= 2,147,483,647 (API limit; the MySQL `INT UNSIGNED` column supports up to 4,294,967,295) |
 | `page` | integer >= 1 (default 1) |
 | `limit` | integer 1-100 (default 10) |
 | `:id` | integer |
 
-Whitespace is trimmed before validation, so a value that is only spaces is rejected as empty. Unknown body properties are rejected, not ignored. Price is **accepted as a JSON number and returned as a decimal string** (decision D-4).
+Whitespace is trimmed before validation, so a value that is only spaces is rejected as empty. Unknown body properties are rejected, not ignored. Price is accepted and returned as a decimal string; MySQL persists it as `DECIMAL(10,2)`. Monetary values must never be converted to JavaScript `Number` in API handling or monetary calculations. Returned prices use exactly two fractional digits.
 
 ## 5. Non-functional requirements
 
 - **NFR-1 Error shape.** Errors use Nest's standard body: `statusCode`, `message` (string, or string array for validation) and an `error` label. All validation failures are returned together. Unexpected errors return **500** with a generic message; details go to the server log only, and no SQL or stack trace reaches the client.
 - **NFR-2 Uniqueness under concurrency.** Two simultaneous creates with the same token produce exactly one success and one 409. The database unique index enforces this.
 - **NFR-3 Configuration.** DB host, port, user, password and name come from environment variables with local defaults. `.env.example` documents them.
-- **NFR-4 Testability.** Unit tests need no database. Integration (HTTP) tests run against a **real MySQL** in Docker Compose, using an isolated test database. The README documents the commands.
+- **NFR-4 Testability.** Unit tests need no database. HTTP integration tests run against real MySQL in Docker Compose and may connect only to the isolated `ecommerce_test` database. Test setup must fail before connecting or running schema setup if any other database is selected. The README documents the commands.
 - **NFR-5 Documentation.** README with setup, endpoints, real captured requests and responses, design decisions and limitations.
 - **NFR-6 Logging.** Nest's built-in logger; log notable events and unexpected errors.
 

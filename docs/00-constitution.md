@@ -1,4 +1,4 @@
-# Constitution
+﻿# Constitution
 
 Non-negotiable principles. Changing one is deliberate: edit this file and log it in `DECISIONS.md`.
 
@@ -24,7 +24,7 @@ Versions are pinned in `package.json` for compatibility, but specific version nu
 4. **Fail loudly and helpfully.** Correct status plus an actionable message. Never leak SQL or stack traces.
 5. **Money is never a float.** Fixed-point decimals, returned as strings.
 6. **Smallest thing that satisfies the spec.** No speculative features.
-7. **Test against the real database** for anything that depends on MySQL behaviour. Unit tests stay database-free.
+7. **Test against the real database** for anything that depends on MySQL behaviour. Unit tests stay database-free. HTTP integration tests use Docker Compose MySQL and may connect only to `ecommerce_test`; test setup fails before connecting or running schema setup for any other database name.
 8. **Config from environment.** No secrets or hosts in code.
 
 ## Quality bar

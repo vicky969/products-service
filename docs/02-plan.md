@@ -1,4 +1,4 @@
-# Plan
+﻿# Plan
 
 How the spec will be built, and why. Alternatives are listed because interviewers probe them.
 
@@ -54,10 +54,10 @@ AGENTS.md                    AI rules (Codex reads this); CLAUDE.md points to it
 - **Why:** rejecting unknown fields blocks mass-assignment (clients can't set `id`) and exposes typos. `transform` turns query strings into numbers. Trimming first means `"   "` is rejected as empty.
 - **Rejected:** `whitelist` only (silently drops fields); hand-written checks in the service.
 
-### D-4 Money: `DECIMAL(10,2)`, accepted as a number, returned as a string
-- **Why:** floats cannot hold most decimals exactly. mysql2 returns DECIMAL as a string, so returning it unchanged is exact and needs no conversion code. Input is a JSON number capped at 2 decimal places, which is exact enough at that precision.
-- **Trade-off:** input is a number but output is a string, which is asymmetric. Accepting strings too would remove that; deferred for scope.
-- **Rejected:** converting to a JS number (precision surprises in money maths); integer cents (more correct for arithmetic but the brief says decimal).
+### D-4 Money uses decimal strings at the API boundary and `DECIMAL(10,2)` in MySQL
+- **Choice:** accept a decimal string such as `"19.99"`, validate its syntax and the 0 to 99,999,999.99 range, persist it as MySQL `DECIMAL(10,2)`, and return it as a decimal string with two fractional digits.
+- **Why:** decimal strings preserve the exact value through validation and serialization; MySQL `DECIMAL` is fixed-point. Never convert monetary values to JavaScript `Number` for API handling or monetary calculations.
+- **Rejected:** JSON numeric prices and `FLOAT`/`DOUBLE`, which risk precision loss.
 
 ### D-5 Token uniqueness is case-sensitive, enforced by a binary collation
 - **Why:** the decision is exact-match tokens. MySQL's default collations are case-insensitive, so `sku-1` would collide with `SKU-1` even without our intent. Using `utf8mb4_bin` on `productToken` makes the database match the spec.
@@ -81,22 +81,22 @@ AGENTS.md                    AI rules (Codex reads this); CLAUDE.md points to it
 - **Why:** tests must exercise exactly the pipes production uses.
 
 ### D-10 Test strategy
-- **Unit (no database):** service with a mocked model, controller with a mocked service, DTO rules via `class-validator`.
-- **Integration (HTTP, real MySQL):** supertest against the real Nest app on Docker Compose MySQL, in an isolated `ecommerce_test` database, tables cleared between tests.
-- **Why real MySQL:** it exercises what SQLite can't: the binary collation, `UNSIGNED`, `DECIMAL` as strings. This is where D-5 is proven.
-- **Trade-off:** integration tests need Docker running. Say so in the README.
-- **Rejected:** SQLite for integration tests (faster, but hides MySQL-specific behaviour).
+- **Unit (no database):** service tests with a mocked model and DTO validation tests using `class-validator`. Controller unit tests are not required.
+- **Integration (HTTP, real MySQL):** supertest against the Nest app connected to Docker Compose MySQL, using only the isolated `ecommerce_test` database. The test setup must reject any other database name before connecting or running schema setup.
+- **Why real MySQL:** it exercises MySQL-specific behavior including binary collation, `UNSIGNED`, and `DECIMAL` persistence. Tables are isolated from the normal `ecommerce` database.
+- **Trade-off:** integration tests require Docker and a running MySQL test database; document the setup in the README.
+
 
 ### D-11 Docker Compose runs MySQL only
 - **Why:** it is the only dependency worth containerising for this scope. The NestJS app runs with `npm`.
 - **Rejected:** containerising the app (extra Dockerfile to explain, not requested).
 
 ### D-12 Versions are pinned but not constitutional
-- **Why:** newer majors broke the toolchain before (Nest 12 is ESM-only and failed under Jest; TypeScript 7 broke ts-jest). Pin compatible versions in `package.json`, and verify with a build and a test run after every install. The constitution names the stack, not version numbers.
+- **Why:** pinned dependencies make the toolchain reproducible. Version compatibility anecdotes in `DECISIONS.md` are historical observations requiring independent verification for this workspace. Verify with a build and tests after installation. The constitution names the stack, not version numbers.
 
-### D-13 Swagger deferred
-- **Why:** README documentation and curl examples satisfy "Documentation" and "Usage Example". Fewer dependencies and decorators to explain.
-- **Revisit if** time remains after everything else is done and explained.
+### D-13 Swagger/OpenAPI is outside v1
+- **Why:** README endpoint documentation and request/response examples satisfy the v1 documentation scope without adding a separate API documentation layer.
+
 
 ### D-14 Logging and 500s
 - **Why:** Nest's built-in `Logger`. Unexpected errors return a generic 500 and are logged with detail on the server only, so no database details leak.

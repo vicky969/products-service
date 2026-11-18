@@ -1,4 +1,4 @@
-# Decisions log
+﻿# Decisions log
 
 Append-only. One entry whenever something is decided, changed, or goes wrong. This is your interview script.
 
@@ -27,13 +27,22 @@ Format:
 - Alternatives: see the plan.
 - Spec/plan changes: `01-spec.md` v2, `02-plan.md` (D-1 to D-14), constitution, tasks, `AGENTS.md`, drills.
 
+## 2026-11-18  Approved consistency corrections
+- Context: reviewed v2 against the approved Scalapay assignment and corrected cross-document inconsistencies without reopening the 19 approved design decisions.
+- Decision: price input and output are decimal strings; validate decimal syntax and the `DECIMAL(10,2)` range, persist as MySQL `DECIMAL(10,2)`, and never convert monetary values to JavaScript `Number`.
+- Decision: stock is MySQL `INT UNSIGNED` with no default. Its database range is 0-4,294,967,295; the API accepts 0-2,147,483,647.
+- Decision: unit coverage consists of service tests with a mocked model and DTO validation tests. HTTP integration tests use real MySQL in Docker Compose and only `ecommerce_test`; setup fails before connecting or applying schema if another database name is selected. Controller unit tests are not required.
+- Decision: Swagger/OpenAPI is outside v1 scope. Change drills are optional interview practice and outside v1 implementation scope.
+- Decision: README documentation and examples replace the obsolete comparison instruction referencing a separate reference build.
+- Spec/plan/task changes: updated `01-spec.md`, `02-plan.md`, `03-tasks.md`, `AGENTS.md`, `README.md`, and `04-change-drills.md` to match these decisions.
+
 ## Things that went wrong (fill in as you build)
 
-Examples from the reference build, so you know what to look for:
+Historical observations from a prior/reference build. These are not established compatibility facts; independently verify each against this workspace and its current dependency versions before relying on it:
 
-- Latest Nest major (12) is ESM-only and failed under Jest. Fix: pin the Nest 11 line. Lesson: build and run tests after every install.
-- Latest TypeScript (7) could not be used by ts-jest. Fix: pin 5.9.
-- First model typing (`Model<Product>`) made `create()` require every internal Sequelize member. Fix: separate attributes and creation-attributes types.
+- A prior build reportedly found a Nest major version incompatible with its Jest setup. Exact versions, error and cause require verification.
+- A prior build reportedly found a TypeScript version incompatible with ts-jest. Exact versions, error and cause require verification.
+- A prior build reportedly encountered Sequelize model typing friction with `Model<Product>`. The code and type definitions need verification before treating the reported cause or fix as established.
 
 ## AC-to-test traceability (fill in during Task 8)
 
