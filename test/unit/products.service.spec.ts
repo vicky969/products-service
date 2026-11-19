@@ -140,3 +140,57 @@ describe('Product listing service', () => {
     });
   });
 });
+
+describe('Product stock update service', () => {
+  interface SaveStockOptions {
+    fields: string[];
+  }
+
+  function createStockService(): {
+    service: ProductsService;
+    findByPk: jest.Mock<(id: number) => Promise<Product | null>>;
+    save: jest.Mock<(options: SaveStockOptions) => Promise<Product>>;
+  } {
+    const findByPk = jest.fn<(id: number) => Promise<Product | null>>();
+    const save = jest.fn<(options: SaveStockOptions) => Promise<Product>>();
+    const productModel = { findByPk } as unknown as typeof Product;
+
+    return { service: new ProductsService(productModel), findByPk, save };
+  }
+
+  it('updates only stock on an existing product', async () => {
+    const { service, findByPk, save } = createStockService();
+    const product = {
+      id: 42,
+      productToken: 'sku-42',
+      name: 'Example',
+      price: '19.99',
+      stock: 10,
+      save,
+    } as unknown as Product;
+    findByPk.mockResolvedValue(product);
+    save.mockResolvedValue(product);
+
+    await expect(service.updateStock(42, 3)).resolves.toBe(product);
+
+    expect(findByPk).toHaveBeenCalledWith(42);
+    expect(product).toMatchObject({
+      id: 42,
+      productToken: 'sku-42',
+      name: 'Example',
+      price: '19.99',
+      stock: 3,
+    });
+    expect(save).toHaveBeenCalledWith({ fields: ['stock'] });
+  });
+
+  it('throws not found when the product id does not exist', async () => {
+    const { service, findByPk } = createStockService();
+    findByPk.mockResolvedValue(null);
+
+    await expect(service.updateStock(42, 3)).rejects.toMatchObject({
+      status: 404,
+      message: 'Product with id 42 not found',
+    });
+  });
+});

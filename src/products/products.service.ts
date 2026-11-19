@@ -61,4 +61,15 @@ export class ProductsService {
       },
     };
   }
+
+  async updateStock(id: number, stock: number): Promise<Product> {
+    const product = await this.productModel.findByPk(id);
+
+    if (!product) {
+      throw new NotFoundException(`Product with id ${id} not found`);
+    }
+
+    product.stock = stock;
+    return product.save({ fields: ['stock'] });
+  }
 }

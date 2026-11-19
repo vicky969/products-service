@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { UpdateStockDto } from './dto/update-stock.dto';
 import { Product } from './product.model';
 import { ProductPage, ProductsService } from './products.service';
 
@@ -21,5 +22,13 @@ export class ProductsController {
   @Get()
   findAll(@Query() pagination: PaginationQueryDto): Promise<ProductPage> {
     return this.productsService.findAll(pagination);
+  }
+
+  @Patch(':id/stock')
+  updateStock(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateStockDto: UpdateStockDto,
+  ): Promise<Product> {
+    return this.productsService.updateStock(id, updateStockDto.stock);
   }
 }

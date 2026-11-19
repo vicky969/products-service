@@ -104,3 +104,9 @@ Historical observations from a prior/reference build. These are not established 
 - Decision: `ProductsService.findAll` uses `findAndCountAll` with offset `(page - 1) * limit` and ascending `id` order. It returns the current page plus total, page, limit, and ceiling-based total page count; an empty result has zero total pages.
 - Test coverage: service unit tests verify query options, page metadata, and the empty result. MySQL HTTP tests cover default pagination, page 3 ordering, a page beyond the last page, and invalid page/limit values (FR-2 AC-2.1 through AC-2.6).
 - Verification: `npm.cmd run build` passed; `npm.cmd test` passed (3 suites, 46 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against real MySQL (2 suites, 25 tests).
+
+## 2026-11-19  Task 6 stock update
+
+- Decision: stock updates are absolute values. The service finds the product, changes only `stock`, and saves with `fields: ['stock']`. This preserves the other columns; as D-6 records, concurrent read-then-write updates remain last-write-wins, and an order flow would need an atomic conditional decrement.
+- Test coverage: service unit tests verify the persisted field list and 404 behavior. MySQL HTTP tests cover successful updates with other fields unchanged, zero stock, negative/fractional/missing values, extra properties, and unknown ids (FR-4 AC-4.1 through AC-4.5).
+- Verification: `npm.cmd run build` passed; `npm.cmd test` with `NODE_OPTIONS=--max-old-space-size=1024` passed (3 suites, 48 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` and the same Node heap setting passed against real MySQL (3 suites, 32 tests). Sandboxed Jest runs initially hit Node out-of-memory during compilation; the guarded E2E run passed outside the sandbox. `git diff --check` passed.
