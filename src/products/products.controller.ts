@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
 import { UpdateStockDto } from './dto/update-stock.dto';
@@ -30,5 +42,11 @@ export class ProductsController {
     @Body() updateStockDto: UpdateStockDto,
   ): Promise<Product> {
     return this.productsService.updateStock(id, updateStockDto.stock);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.productsService.remove(id);
   }
 }

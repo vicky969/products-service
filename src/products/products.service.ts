@@ -72,4 +72,12 @@ export class ProductsService {
     product.stock = stock;
     return product.save({ fields: ['stock'] });
   }
+
+  async remove(id: number): Promise<void> {
+    const deletedCount = await this.productModel.destroy({ where: { id } });
+
+    if (deletedCount === 0) {
+      throw new NotFoundException(`Product with id ${id} not found`);
+    }
+  }
 }

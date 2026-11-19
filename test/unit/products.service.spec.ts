@@ -194,3 +194,38 @@ describe('Product stock update service', () => {
     });
   });
 });
+
+describe('Product deletion service', () => {
+  interface DestroyOptions {
+    where: { id: number };
+  }
+
+  function createDeleteService(): {
+    service: ProductsService;
+    destroy: jest.Mock<(options: DestroyOptions) => Promise<number>>;
+  } {
+    const destroy = jest.fn<(options: DestroyOptions) => Promise<number>>();
+    const productModel = { destroy } as unknown as typeof Product;
+
+    return { service: new ProductsService(productModel), destroy };
+  }
+
+  it('resolves when one product row is deleted', async () => {
+    const { service, destroy } = createDeleteService();
+    destroy.mockResolvedValue(1);
+
+    await expect(service.remove(42)).resolves.toBeUndefined();
+    expect(destroy).toHaveBeenCalledWith({ where: { id: 42 } });
+  });
+
+  it('throws not found when no product row is deleted', async () => {
+    const { service, destroy } = createDeleteService();
+    destroy.mockResolvedValue(0);
+
+    await expect(service.remove(42)).rejects.toMatchObject({
+      status: 404,
+      message: 'Product with id 42 not found',
+    });
+    expect(destroy).toHaveBeenCalledWith({ where: { id: 42 } });
+  });
+});
