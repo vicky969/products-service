@@ -148,7 +148,11 @@ describe('Request validation', () => {
   it('registers the strict transforming global ValidationPipe', async () => {
     let registeredPipe: ValidationPipe | undefined;
     let registeredFilter: AppExceptionFilter | undefined;
+    const registeredMiddleware: unknown[] = [];
     const app = {
+      use: (...middleware: unknown[]): void => {
+        registeredMiddleware.push(...middleware);
+      },
       useGlobalPipes: (pipe: ValidationPipe): void => {
         registeredPipe = pipe;
       },
@@ -161,6 +165,7 @@ describe('Request validation', () => {
 
     expect(registeredFilter).toBeInstanceOf(AppExceptionFilter);
     expect(registeredPipe).toBeInstanceOf(ValidationPipe);
+    expect(registeredMiddleware).toHaveLength(2);
     expect(registeredPipe).toMatchObject({
       validatorOptions: { whitelist: true, forbidNonWhitelisted: true },
     });
