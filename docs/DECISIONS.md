@@ -161,3 +161,9 @@ Historical observations from a prior/reference build. These are not established 
 - Change: added `AppExceptionFilter` to the shared application setup. It preserves Nest `HttpException` responses; unexpected failures are logged with server-side details and return `statusCode`, a generic `message`, and the required `error` label. No exception detail is included in the response.
 - Test coverage: the MySQL HTTP suite injects an unexpected error containing SQL-like details and verifies the 500 body, absence of those details from the response, and server logging. An empty-table HTTP test verifies `data: []` and `{ total: 0, page: 1, limit: 10, totalPages: 0 }`; the test runner's existing fail-closed guard restricts the suite to `ecommerce_test`.
 - Verification: `npm.cmd run build` passed; `npm.cmd test` passed (3 suites, 50 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against MySQL (4 suites, 37 tests). `git diff --check` was run after this documentation update.
+
+## 2026-11-19  Security enhancement S1 HTTP headers
+
+- Decision: use direct `helmet@8.3.0` middleware in shared `configureApp()` rather than add `@nestjs/helmet`. The application already uses Nest's Express adapter, so direct official middleware is sufficient and avoids an unnecessary wrapper dependency.
+- Decision: apply a restrictive JSON-API CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, and a restrictive `Permissions-Policy`; leave HSTS disabled for local HTTP development. Production HSTS requires a separately verified HTTPS/proxy deployment decision.
+- Test coverage: guarded MySQL HTTP tests cover the headers and unchanged contracts for 200, validation 400, 404, and generic 500 responses. S2 correlation IDs, S3 structured/redacted logging, S4 consolidation, and JWT authentication remain out of scope for this task.

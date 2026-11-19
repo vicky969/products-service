@@ -4,6 +4,8 @@ Status: **Proposed - implementation requires approval**
 Scope: HTTP hardening, request correlation, safe operational logging, and security regression coverage.  
 Relationship to v1: This document supplements, but does not replace, `01-spec.md`, `02-plan.md`, `03-tasks.md`, `00-constitution.md`, or approved entries in `DECISIONS.md`.
 
+Implementation status: S1 is implemented; S2 through S4 remain proposed and out of the current implementation scope.
+
 ## 1. Purpose and boundaries
 
 The case-study API is a small HTTP/JSON products service. This enhancement strengthens its HTTP boundary and operational diagnostics while preserving every existing route, request shape, response body, status code, product rule, schema, and test-database safeguard.
@@ -220,3 +222,12 @@ Documentation can drift from behavior, so the SEC-ID tests are the executable so
 ## 8. Completion criteria
 
 The enhancement is complete only when S1 through S4 have been individually approved and implemented in order, every SEC requirement has automated evidence, the original product requirements still pass, all required dependency/version verification has occurred, and documentation accurately states the public-exposure/authentication boundary.
+
+## 9. Implementation record
+
+### 2026-11-19 - S1 Helmet and HTTP security headers
+
+- Added the direct `helmet` dependency at pinned version `8.3.0`. `@nestjs/helmet` was not added because the official Helmet Express middleware integrates directly through Nest's existing Express application adapter.
+- Shared application setup now applies a JSON-API CSP (`default-src 'none'`, with no base, form, frame, or object sources), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, a restrictive `Permissions-Policy`, and removes `X-Powered-By`.
+- HSTS is explicitly disabled for local HTTP development. Production HSTS remains a separate deployment decision after end-to-end HTTPS and proxy configuration are verified.
+- Focused guarded HTTP integration tests cover the headers and unchanged bodies on 200, validation 400, 404, and generic 500 paths. No API, database, authentication, correlation-ID, or logging behavior was changed.
