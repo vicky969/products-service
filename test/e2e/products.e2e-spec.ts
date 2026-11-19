@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from '@jest/globals';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/sequelize';
 import request from 'supertest';
@@ -7,6 +7,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/app.setup';
 import { Product } from '../../src/products/product.model';
+import { ProductsService } from '../../src/products/products.service';
 
 interface ProductResponse {
   id: number;
@@ -213,6 +214,39 @@ describe('Products API - product operations', () => {
     });
   });
 
+  it('returns a generic error body for unexpected failures without exposing database details', async () => {
+    const productsService = app?.get(ProductsService);
+    if (!productsService) {
+      throw new Error('ProductsService is not available');
+    }
+
+    const databaseDetails = 'SQL execution failed: SELECT password FROM private_table';
+    const originalFindOne = productsService.findOne;
+    const originalLoggerError = Logger.prototype.error;
+    const loggedErrorArguments: string[] = [];
+    productsService.findOne = async (): Promise<Product> => {
+      throw new Error(databaseDetails);
+    };
+    Logger.prototype.error = (message: unknown, ...optionalParams: unknown[]): void => {
+      loggedErrorArguments.push(String(message), ...optionalParams.map(String));
+    };
+
+    try {
+      const response = await request(app?.getHttpServer()).get('/products/1').expect(500);
+
+      expect(response.body).toEqual({
+        statusCode: 500,
+        message: 'Internal server error',
+        error: 'Internal Server Error',
+      });
+      expect(JSON.stringify(response.body)).not.toContain(databaseDetails);
+      expect(loggedErrorArguments.join('\n')).toContain(databaseDetails);
+    } finally {
+      productsService.findOne = originalFindOne;
+      Logger.prototype.error = originalLoggerError;
+    }
+  });
+
   it('rejects a non-integer product id', async () => {
     await request(app?.getHttpServer()).get('/products/abc').expect(400);
   });
@@ -285,6 +319,16 @@ describe('Products API - product operations', () => {
       limit,
       totalPages: Math.ceil(total / limit),
     });
+  });
+
+  it('returns empty data and zero pagination totals when there are no products', async () => {
+    await Product.destroy({ where: {}, truncate: true });
+
+    const response = await request(app?.getHttpServer()).get('/products').expect(200);
+    const result = response.body as ProductListResponse;
+
+    expect(result.data).toEqual([]);
+    expect(result.meta).toEqual({ total: 0, page: 1, limit: 10, totalPages: 0 });
   });
 
   it.each([

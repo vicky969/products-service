@@ -44,13 +44,45 @@ Historical observations from a prior/reference build. These are not established 
 - A prior build reportedly found a TypeScript version incompatible with ts-jest. Exact versions, error and cause require verification.
 - A prior build reportedly encountered Sequelize model typing friction with `Model<Product>`. The code and type definitions need verification before treating the reported cause or fix as established.
 
-## AC-to-test traceability (fill in during Task 8)
+## AC-to-test traceability
 
-| AC | Test file and name |
+| Requirement | Test file and test name |
 | --- | --- |
-| AC-1.1 | |
-| AC-1.2 | |
-| ... | |
+| AC-1.1 | `test/e2e/products.e2e-spec.ts` — creates a product with its price returned as a decimal string |
+| AC-1.2 | `test/e2e/products.e2e-spec.ts` — returns a conflict for an exact duplicate product token |
+| AC-1.3 | `test/e2e/products.e2e-spec.ts` — treats product tokens as case-sensitive |
+| AC-1.4 | `test/e2e/products.e2e-spec.ts` — reports all validation errors for an invalid request body |
+| AC-1.5 | `test/e2e/products.e2e-spec.ts` — rejects unknown request properties |
+| AC-1.6 | `test/e2e/products.e2e-spec.ts` — rejects a create request with missing stock; `test/unit/validation-foundation.spec.ts` — requires every create product field, including stock |
+| AC-2.1 | `test/e2e/products.e2e-spec.ts` — uses the default page and limit when listing products |
+| AC-2.2 | `test/e2e/products.e2e-spec.ts` — default and third-page listing tests assert `data` and all pagination metadata |
+| AC-2.3 | `test/e2e/products.e2e-spec.ts` — default and third-page listing tests assert ascending ID order |
+| AC-2.4 | `test/e2e/products.e2e-spec.ts` — returns an empty page beyond the last page with the correct total |
+| AC-2.5 | `test/e2e/products.e2e-spec.ts` — rejects invalid page and limit values |
+| AC-2.6 | `test/unit/products.service.spec.ts` — returns empty data and zero total pages when no products exist; `test/e2e/products.e2e-spec.ts` — returns empty data and zero pagination totals when there are no products |
+| AC-3.1 | `test/e2e/products.e2e-spec.ts` — retrieves a product by its id |
+| AC-3.2 | `test/e2e/products.e2e-spec.ts` — returns the not found message for an unknown product id |
+| AC-3.3 | `test/e2e/products.e2e-spec.ts` — rejects a non-integer product id |
+| AC-4.1 | `test/e2e/products-stock.e2e-spec.ts` — updates stock and leaves the other product fields unchanged |
+| AC-4.2 | `test/e2e/products-stock.e2e-spec.ts` — allows stock to be set to zero |
+| AC-4.3 | `test/e2e/products-stock.e2e-spec.ts` — rejects negative, non-integer, and missing stock values |
+| AC-4.4 | `test/e2e/products-stock.e2e-spec.ts` — rejects properties other than stock in an update request |
+| AC-4.5 | `test/e2e/products-stock.e2e-spec.ts` — returns not found when updating an unknown product id |
+| AC-5.1 | `test/e2e/products-delete.e2e-spec.ts` — returns no content after deleting a product, and the product is then not found |
+| AC-5.2 | `test/e2e/products-delete.e2e-spec.ts` — returns not found when deleting an unknown product id |
+| AC-5.3 | `test/e2e/products-delete.e2e-spec.ts` — allows a deleted product token to be reused |
+| FR-6 productToken | `test/unit/validation-foundation.spec.ts` — trims and accepts allowed characters; rejects non-string, empty after trimming, overlength, and invalid characters |
+| FR-6 name | `test/unit/validation-foundation.spec.ts` — trims and accepts a valid name; rejects non-string, empty after trimming, and overlength values |
+| FR-6 price | `test/unit/validation-foundation.spec.ts` — accepts decimal-string boundaries and rejects numbers, leading zeroes, excess precision, exponent notation, and out-of-range values |
+| FR-6 stock | `test/unit/validation-foundation.spec.ts` — accepts valid integer boundaries and rejects negative, fractional, string, and over-limit values for stock updates; create endpoint tests cover invalid and missing stock |
+| FR-6 page and limit | `test/unit/validation-foundation.spec.ts` — verifies defaults, query transformation, integer rules, and bounds |
+| FR-6 :id | `test/e2e/products.e2e-spec.ts` — rejects a non-integer product id |
+| NFR-1 validation and known errors | `test/e2e/products.e2e-spec.ts` and `test/e2e/products-stock.e2e-spec.ts` — exercise validation, conflict, and not-found response bodies |
+| NFR-1 unexpected errors | `test/e2e/products.e2e-spec.ts` — returns a generic error body for unexpected failures without exposing database details; verifies the required 500 `error` label, excludes SQL details from the response, and confirms details reach the server logger. |
+| NFR-2 | `test/e2e/products.e2e-spec.ts` — allows only one of two concurrent creates for a product token |
+| NFR-3 and NFR-4 | `test/e2e/scaffold.e2e-spec.ts` — connects to `ecommerce_test`; `test/unit/database-safety.spec.ts` — accepts only `ecommerce_test`; `test/e2e/database-safety.setup.cjs` and `scripts/run-e2e-tests.cjs` enforce the database guard before tests connect |
+| NFR-6 unexpected-error logging | `test/e2e/products.e2e-spec.ts` — confirms unexpected error details are passed to the server logger. |
+
 ## 2026-11-18  Task 0 scaffold and verified toolchain
 
 - Decision: pinned NestJS 11.2.11, Nest CLI 11.0.24, TypeScript 5.9.3, Sequelize 6.37.7, Jest 29.7.0, and the remaining direct dependencies at the exact versions in `package.json` and `package-lock.json`.
@@ -116,3 +148,16 @@ Historical observations from a prior/reference build. These are not established 
 - Decision: `ProductsService.remove` performs a hard delete and uses the affected-row count to distinguish success from an unknown id; it does not issue a separate lookup. The controller returns 204 with no response body.
 - Test coverage: service tests verify one deleted row resolves and zero rows returns 404. MySQL HTTP tests verify 204 followed by 404, 404 for an unknown id, and successful reuse of a deleted product token (FR-5 AC-5.1 through AC-5.3).
 - Verification: `npm.cmd run build` passed; `npm.cmd test` with `NODE_OPTIONS=--max-old-space-size=1024` passed (3 suites, 50 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` and the same Node heap setting passed against real MySQL (4 suites, 35 tests). The sandbox denied the MySQL E2E connection with EACCES on port 3307, so the guarded E2E run was repeated outside the sandbox and passed.
+
+## 2026-11-19  Task 8 implementation review
+
+- Review: the implemented routes and FR-6 validation rules match the approved scope; MySQL integration coverage exercises product persistence, pagination, stock update and deletion. No production or test TypeScript `any` types, SQL/stack response construction, or credential exposure were found. `.env` is ignored and untracked; `.env.example` is the only tracked environment file.
+- Finding: Nest's default handler for an unexpected exception returns the generic 500 message and logs the exception, so SQL details and stack traces are not sent in the response. Its response omits the `error` label required by NFR-1, and no HTTP test currently verifies unexpected-error response/log behavior. This remains outstanding for review; no exception filter or behavior change was introduced in this audit.
+- Verification: `npm.cmd run build` passed. `npm.cmd test -- --coverage` passed (3 suites, 50 tests); reported 100% statements, branches, functions, and lines for files included in unit coverage. `npm.cmd run test:e2e` initially could not reach local MySQL inside the sandbox (`EACCES` to `127.0.0.1:3307`); the same guarded run with `E2E_DB_NAME=ecommerce_test` passed outside the sandbox (4 suites, 35 tests) against MySQL. `git diff --check` passed before this documentation update; it was rerun after the update.
+
+## 2026-11-19  Task 8 review findings addressed
+
+- Resolution: this follow-up closes the NFR-1 gap recorded in the earlier Task 8 review entry.
+- Change: added `AppExceptionFilter` to the shared application setup. It preserves Nest `HttpException` responses; unexpected failures are logged with server-side details and return `statusCode`, a generic `message`, and the required `error` label. No exception detail is included in the response.
+- Test coverage: the MySQL HTTP suite injects an unexpected error containing SQL-like details and verifies the 500 body, absence of those details from the response, and server logging. An empty-table HTTP test verifies `data: []` and `{ total: 0, page: 1, limit: 10, totalPages: 0 }`; the test runner's existing fail-closed guard restricts the suite to `ecommerce_test`.
+- Verification: `npm.cmd run build` passed; `npm.cmd test` passed (3 suites, 50 tests); `npm.cmd run test:e2e` with `E2E_DB_NAME=ecommerce_test` passed against MySQL (4 suites, 37 tests). `git diff --check` was run after this documentation update.

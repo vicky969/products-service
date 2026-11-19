@@ -6,6 +6,7 @@ import { CreateProductDto } from '../../src/products/dto/create-product.dto';
 import { PaginationQueryDto } from '../../src/products/dto/pagination-query.dto';
 import { UpdateStockDto } from '../../src/products/dto/update-stock.dto';
 import { configureApp } from '../../src/app.setup';
+import { AppExceptionFilter } from '../../src/app-exception.filter';
 
 describe('Request validation', () => {
   async function validationErrors<T extends object>(
@@ -146,14 +147,19 @@ describe('Request validation', () => {
 
   it('registers the strict transforming global ValidationPipe', async () => {
     let registeredPipe: ValidationPipe | undefined;
+    let registeredFilter: AppExceptionFilter | undefined;
     const app = {
       useGlobalPipes: (pipe: ValidationPipe): void => {
         registeredPipe = pipe;
+      },
+      useGlobalFilters: (filter: AppExceptionFilter): void => {
+        registeredFilter = filter;
       },
     } as INestApplication;
 
     configureApp(app);
 
+    expect(registeredFilter).toBeInstanceOf(AppExceptionFilter);
     expect(registeredPipe).toBeInstanceOf(ValidationPipe);
     expect(registeredPipe).toMatchObject({
       validatorOptions: { whitelist: true, forbidNonWhitelisted: true },
